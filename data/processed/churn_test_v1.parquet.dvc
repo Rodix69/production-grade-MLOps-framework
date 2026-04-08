@@ -1,0 +1,5 @@
+outs:
+- md5: b8c783ffa40980304efd63066070ee84
+  size: 960060
+  hash: md5
+  path: churn_test_v1.parquet
