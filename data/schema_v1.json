@@ -1,0 +1,10 @@
+{
+  "version": "v1",
+  "columns": {
+    "customer_id": {"type": "int", "primary_key": true},
+    "age": {"type": "int", "min": 0, "max": 120},
+    "churn": {"type": "int", "values": [0, 1]},
+    "calls_made": {"type": "int", "min": 0},
+    "telecom_partner": {"type": "str", "values": ["Airtel","BSNL","Reliance Jio","Vodafone"]}
+  }
+}
