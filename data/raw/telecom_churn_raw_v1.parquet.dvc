@@ -1,0 +1,5 @@
+outs:
+- md5: 96644e66a182873994fcab355445fdbc
+  size: 5298348
+  hash: md5
+  path: telecom_churn_raw_v1.parquet

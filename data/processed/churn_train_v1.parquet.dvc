@@ -1,0 +1,5 @@
+outs:
+- md5: 82cf651f53d01fd56cc2b662c7b14b28
+  size: 3973175
+  hash: md5
+  path: churn_train_v1.parquet

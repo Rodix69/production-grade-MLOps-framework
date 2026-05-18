@@ -18,9 +18,9 @@ mlartifacts/
 *.joblib
 artifacts/
 
-# OS files
-.DS_Store
-Thumbs.db
+# Data
+*.csv
+*.parquet
 
 # Outputs
 outputs/
@@ -30,3 +30,13 @@ outputs/
 
 # Logs
 *.log
+
+# Environment files
+.env
+
+# Anaconda
+anaconda_projects/
+
+# OS files
+.DS_Store
+Thumbs.db
