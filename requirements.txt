@@ -1,0 +1,10 @@
+pandas
+numpy
+scikit-learn
+xgboost
+mlflow
+optuna
+dvc
+fastapi
+uvicorn
+python-dotenv
