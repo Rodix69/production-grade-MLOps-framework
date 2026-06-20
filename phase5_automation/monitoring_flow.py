@@ -5,6 +5,11 @@ from prometheus_client import Gauge
 import pandas as pd
 from prefect import flow, task
 import os
+from prometheus_client import start_http_server
+
+
+start_http_server(8000) 
+
 
 DRIFT_GAUGE = Gauge(
     "churn_data_drift_detected",

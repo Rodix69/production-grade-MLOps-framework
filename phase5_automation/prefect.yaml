@@ -2,7 +2,7 @@ name: mlops-automation
 prefect-version: 2.14.21
 
 deployments:
-  - name: main-pipeline
+  - name: default
     version: 1
     tags:
       - churn
@@ -10,7 +10,7 @@ deployments:
     schedule:
       cron: "0 6 * * *"
       timezone: "UTC"
-    flow_name: main-pipeline
+    flow_name: churn-pipeline
     entrypoint: main_flow.py:main_flow
     work_pool:
       name: default-agent-pool
