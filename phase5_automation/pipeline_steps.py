@@ -9,7 +9,7 @@ import os
 
 @task(name="ingest-data", cache_policy=NO_CACHE)
 def ingest_data():
-    base = "C:/phase 5 pipeline MLOps/phase2_model"
+    base = os.getenv("DATA_DIR", "data/processed")
     train = pd.read_parquet(f"{base}/churn_train_v1.parquet")
     val   = pd.read_parquet(f"{base}/churn_val_v1.parquet")
     test  = pd.read_parquet(f"{base}/churn_test_v1.parquet")
