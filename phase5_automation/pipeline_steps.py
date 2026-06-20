@@ -9,7 +9,7 @@ import os
 
 @task(name="ingest-data", cache_policy=NO_CACHE)
 def ingest_data():
-    base = "C:/phase 5 pipeline MLOps/phase2_model"
+    base = os.getenv("DATA_DIR", "data/processed")
     train = pd.read_parquet(f"{base}/churn_train_v1.parquet")
     val   = pd.read_parquet(f"{base}/churn_val_v1.parquet")
     test  = pd.read_parquet(f"{base}/churn_test_v1.parquet")
@@ -212,7 +212,7 @@ def validate_model(model, run_id, X_val, y_val, X_test, y_test):
 def register_model(run_id, passed, test_auc):
     if not passed:
         print("Skipping registration — validation failed")
-        return
+        return None
 
     mlflow.set_tracking_uri(
         os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
@@ -228,3 +228,4 @@ def register_model(run_id, passed, test_auc):
     )
     print(f"Model v{result.version} registered and promoted to Production")
     print(f"Test AUC: {test_auc:.4f}")
+    return result.version
