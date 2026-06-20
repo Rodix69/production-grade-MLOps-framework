@@ -1,128 +1,122 @@
-# Phase 8 — Continuous Training
+# Phase 5 — Pipeline Automation
 
-Extends Phase 5's training pipeline with automated retraining triggers, model version tracking, and rollback capability. The core train/validate/register logic is unchanged from Phase 5 — this phase adds the decision layer that decides *when* to retrain and *how to recover* if a new model underperforms.
+Automated training pipeline for the Telecom Churn MLOps project, orchestrated with [Prefect](https://www.prefect.io/). This phase takes processed data through feature engineering, model training, validation, and registration — with a conditional retraining trigger driven by drift detection.
 
-## What this phase adds on top of Phase 5
+## What this phase does
 
-| Capability | File |
+```
+ingest_data → create_features → train_model → validate_model → register_model
+                                                                       │
+                                                          (drift check via Phase 7)
+                                                                       │
+                                                          if drift → repeat pipeline
+```
+
+1. **Ingest** — loads the train/val/test parquet splits produced in Phase 2
+2. **Feature engineering** — rebuilds the `churn` label from a synthetic business-logic formula (see note below), then engineers 15 additional features on top of the 7 raw columns
+3. **Train** — fits a `RandomForestClassifier` and logs the run to MLflow
+4. **Validate** — gates the model on AUC, inference latency, and memory footprint before it's allowed to register
+5. **Register** — promotes a passing model to `Production` stage in the MLflow Model Registry
+6. **Drift check** — calls into Phase 7's monitoring flow; if drift is detected, the pipeline reruns automatically
+
+## Important: the `churn` label is synthetic
+
+The `churn` column in the source parquet files is **random noise** — it carries no real signal. `create_features()` discards it and rebuilds a new label from a logistic formula based on `calls_made`, `sms_sent`, `data_used`, `estimated_salary`, and `num_dependents`:
+
+```python
+logit = 2.2 - 4.0*norm(calls) - 3.0*norm(sms) - 2.0*norm(data) - 1.5*norm(salary) + 0.5*norm(dependents)
+prob  = sigmoid(logit)
+churn = bernoulli(prob)
+```
+
+This is intentional — it simulates a plausible churn relationship for demo purposes. **If this label-rebuild step is ever removed or bypassed, model AUC collapses to ~0.50** (random guessing), since the original `churn` column has no relationship to the features.
+
+## Feature engineering
+
+22 features are used for training: 7 raw + 15 engineered.
+
+| Feature | Description |
 |---|---|
-| 8.1 — Retraining triggers (drift, data volume) | `main_flow.py`, `retrain_manager.py` |
-| 8.2 — Scheduled retraining | `main_flow.py` (always runs once per invocation) |
-| 8.4 — Version tracking (which model is live) | `retrain_manager.py` |
-| 8.5 — Rollback to previous version | `retrain_manager.py` |
+| `total_activity` | sum of calls, sms, data usage |
+| `avg_calls_per_day`, `avg_data_per_day`, `avg_sms_per_day` | usage normalized by tenure |
+| `engagement_score` | weighted blend of calls/sms/data |
+| `low_activity_flag` | below 25th percentile of `total_activity` (threshold fit on train only) |
+| `high_value_user` | above 75th percentile of `estimated_salary` (threshold fit on train only) |
+| `partner_med_calls/data/sms` | median usage per `telecom_partner`, fit on train only |
+| `calls_vs_partner`, `data_vs_partner` | usage relative to partner median |
+| `is_new_customer` | tenure below 25th percentile |
+| `calls_intensity`, `data_intensity` | usage relative to median, normalized |
 
-## Pipeline flow
+All thresholds and medians are computed on the **training set only** and applied to val/test — this avoids data leakage.
 
-```
-main_flow()
-  │
-  ├─ show current live model (get_current_live_version)
-  │
-  ├─ run_training_pipeline(trigger="scheduled")   ← always runs
-  │
-  ├─ monitoring_flow()  [Phase 7]                  ← drift check
-  │     └─ if drift → run_training_pipeline(trigger="drift")
-  │
-  └─ check_data_volume_trigger()                   ← volume check
-        └─ if growth ≥ 5% → run_training_pipeline(trigger="volume")
-```
+Dropped before training: `date_of_registration`, `customer_id`, `pincode`, `city`, `state`, `telecom_partner`, `gender` (identifiers and raw categoricals not used directly by the model).
 
-Every call to `run_training_pipeline()` runs the full Phase 5 sequence (ingest → feature engineering → train → validate → register), then — if the model passed validation — records the new version and updates the row-count baseline used by the volume trigger.
+## Validation gates
 
-## Retraining triggers
+A trained model is only registered if **all three** conditions pass:
 
-**Scheduled** — runs once every time `main_flow()` executes (daily, per the Prefect deployment schedule).
+| Gate | Threshold |
+|---|---|
+| Test AUC | ≥ 0.80 |
+| Inference time | ≤ 500 ms |
+| Memory footprint | ≤ 500 MB |
 
-**Drift-based** — delegates to Phase 7's `monitoring_flow()`, which compares the training and test distributions with Evidently. If drift is detected, the pipeline reruns.
+If any gate fails, the run is logged to MLflow but the model is **not** registered or promoted — the pipeline prints which gate failed and stops there.
 
-**Data volume** — `check_data_volume_trigger()` compares the current row count in `churn_train_v1.parquet` against the row count recorded after the last successful training run. If the data has grown by **5% or more**, retraining is triggered.
+## Drift-triggered retraining
 
-> Drift detection logic itself belongs to Phase 7 — see the Phase 7 README for how the Evidently report and Prometheus drift gauge work. This phase only consumes that signal.
+`main_flow.py` imports `monitoring_flow` from **Phase 7** to check for data drift between the training and test distributions (using Evidently). If drift is detected, the full ingest → feature → train → validate → register sequence runs a second time automatically.
 
-## Version tracking (8.4)
-
-Every successful training run is recorded in a JSON registry (`VERSION_REGISTRY_PATH`, default `registry/version_registry.json`):
-
-```json
-{
-  "current_live":  { "run_id": "...", "model_version": "7", "test_auc": 0.829, "trigger": "scheduled", "registered_at": "..." },
-  "previous_live": { ... },
-  "version_history": [ ... ]
-}
-```
-
-- `current_live` — the model version currently promoted to `Production` in MLflow
-- `previous_live` — the version before that, kept specifically to support rollback
-- `version_history` — full append-only log of every version ever registered, with its trigger and AUC
-
-Check the current state from the command line:
-```bash
-python retrain_manager.py status
-python retrain_manager.py history
-```
-
-## Rollback (8.5)
-
-If a newly promoted model underperforms in production, roll back to the previous version:
-
-```bash
-python retrain_manager.py rollback
-```
-
-This archives the current `Production` model in MLflow (moves it to `Archived`) and restores the previous version to `Production`, updating the registry to match. Rollback only supports **one level back** — there's no "redo" if you roll back twice in a row.
-
-## Simulating new data (for testing the volume trigger)
-
-`simulate_new_data.py` appends synthetic rows to `churn_train_v1.parquet` to simulate new customer data arriving, so the volume trigger can be tested without waiting for real data growth.
-
-```bash
-python simulate_new_data.py --rows 10000
-```
-
-**This file mutates `churn_train_v1.parquet` in place.** A timestamped backup is created automatically before any changes are written (`data/processed/backups/`). To undo a simulation run:
-
-```bash
-python simulate_new_data.py --restore-latest
-```
-
-The synthetic `churn` label is rebuilt using a logistic formula similar to (but not identical to) the one in `pipeline_steps.py` — this means repeated simulation runs will slightly shift the overall churn rate over time. Restore from backup between test runs if you need a clean baseline.
+> This phase **depends on** Phase 7's monitoring flow but does not own its logic. See the Phase 7 README for drift detection details (Evidently report generation, the Prometheus `churn_data_drift_detected` gauge, etc.).
 
 ## Setup
 
 ```bash
 pip install -r requirements.txt
+```
+
+Copy `.env.example` to `.env` and adjust paths/URIs as needed:
+
+```bash
 cp .env.example .env
 ```
 
 | Variable | Default | Description |
 |---|---|---|
-| `DATA_DIR` | `data/processed` | Folder with the train/val/test parquet files; also where `simulate_new_data.py` stores backups |
-| `MLFLOW_TRACKING_URI` | `http://localhost:5000` | MLflow tracking server |
-| `VERSION_REGISTRY_PATH` | `registry/version_registry.json` | Where the live/previous/history version registry is stored |
+| `DATA_DIR` | `data/processed` | Folder containing `churn_train_v1.parquet`, `churn_val_v1.parquet`, `churn_test_v1.parquet` |
+| `MLFLOW_TRACKING_URI` | `http://localhost:5000` | MLflow tracking server — must be running before the pipeline starts |
 
 ## Running
 
-Start MLflow first, then:
+Start MLflow first:
+
+```bash
+mlflow server --host 0.0.0.0 --port 5000
+```
+
+Then run the pipeline directly:
 
 ```bash
 python main_flow.py
+```
+
+Or deploy it on a schedule via Prefect (`prefect.yaml` runs it daily at 06:00 UTC):
+
+```bash
+prefect deploy
 ```
 
 ## Files in this phase
 
 | File | Purpose |
 |---|---|
-| `main_flow.py` | Orchestrates scheduled run + drift trigger + volume trigger |
-| `pipeline_steps.py` | Shared with Phase 5 — ingest, features, train, validate, register |
-| `retrain_manager.py` | Volume trigger, version tracking, rollback |
-| `simulate_new_data.py` | Generates synthetic rows to test the volume trigger, with auto-backup |
-| `debug_check.py` | Dev/diagnostic script — feature correlations, AUC sanity checks. Not part of the automated pipeline. |
-| `requirements.txt` | Pinned dependencies |
+| `main_flow.py` | Top-level Prefect flow — orchestrates the full pipeline and the drift-retrain loop |
+| `pipeline_steps.py` | Individual Prefect tasks: ingest, feature engineering, train, validate, register |
+| `prefect.yaml` | Deployment config — daily cron schedule, work pool |
+| `requirements.txt` | Pinned dependencies for this phase |
 | `.env.example` | Template for required environment variables |
 
 ## Known limitations
 
-- Rollback supports only one level of history — rolling back twice loses the ability to "redo"
-- `simulate_new_data.py`'s churn-generation formula has a different intercept than `pipeline_steps.py`'s, so repeated simulation runs gradually drift the synthetic churn rate
-- `debug_check.py` is a development scratch file, not a maintained pipeline component — kept for reference only
-- `approval_workflow.py` is present in the shared `phase5_automation` folder but belongs to **Phase 9** (governance), not this phase — see the Phase 9 README
+- Model promotion to `Production` is fully automatic on passing validation — there is no human approval gate in this phase (see Phase 8 for a gated retraining workflow)
+- `create_features()` recomputes engineered features inline rather than reusing a saved feature-transformation artifact, so training-time and serving-time feature logic must be kept in sync manually
