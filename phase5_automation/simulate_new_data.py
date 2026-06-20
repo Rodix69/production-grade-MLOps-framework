@@ -3,20 +3,60 @@ simulate_new_data.py — Phase 8.1
 Appends synthetic rows to the training parquet file to simulate new data arriving.
 Run this script to simulate a data ingestion event before triggering retraining.
 
+A timestamped backup of the original training file is created automatically
+before any changes are made (see backups/ folder). Use --restore-latest to
+revert to the most recent backup.
+
 Usage:
     python simulate_new_data.py --rows 10000
+    python simulate_new_data.py --restore-latest
 """
 
 import argparse
-import numpy as np
-import pandas as pd
+import os
+import shutil
+from datetime import datetime
 from pathlib import Path
 
-BASE = "C:/phase 5 pipeline MLOps/phase2_model"
-TRAIN_PATH = f"{BASE}/churn_train_v1.parquet"
+import numpy as np
+import pandas as pd
+
+BASE        = os.getenv("DATA_DIR", "data/processed")
+TRAIN_PATH  = Path(f"{BASE}/churn_train_v1.parquet")
+BACKUP_DIR  = Path(f"{BASE}/backups")
+
+
+def backup_train_file() -> Path:
+    """Copy the current training parquet to a timestamped backup before mutating it."""
+    BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+    timestamp   = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_path = BACKUP_DIR / f"churn_train_v1_{timestamp}.parquet"
+    shutil.copy2(TRAIN_PATH, backup_path)
+    print(f"Backup created: {backup_path}")
+    return backup_path
+
+
+def restore_latest_backup() -> None:
+    """Restore the training parquet from the most recent backup."""
+    if not BACKUP_DIR.exists():
+        print("No backups directory found — nothing to restore.")
+        return
+
+    backups = sorted(BACKUP_DIR.glob("churn_train_v1_*.parquet"))
+    if not backups:
+        print("No backups found — nothing to restore.")
+        return
+
+    latest = backups[-1]
+    shutil.copy2(latest, TRAIN_PATH)
+    print(f"Restored {TRAIN_PATH} from {latest}")
 
 
 def simulate_new_data(n_rows: int = 10000) -> None:
+    # Back up the original file before any mutation — this is what was
+    # previously a manual, easy-to-forget step.
+    backup_train_file()
+
     # Load existing data to match schema and value ranges
     existing = pd.read_parquet(TRAIN_PATH)
     print(f"Existing training rows: {len(existing)}")
@@ -72,11 +112,18 @@ def simulate_new_data(n_rows: int = 10000) -> None:
     print(f"Appended {n_rows} synthetic rows")
     print(f"New training size: {len(combined)} rows")
     print(f"Growth: +{(len(combined) - len(existing)) / len(existing) * 100:.1f}%")
+    print(f"If you need to undo this, run: python simulate_new_data.py --restore-latest")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--rows", type=int, default=10000,
                         help="Number of synthetic rows to append (default: 10000)")
+    parser.add_argument("--restore-latest", action="store_true",
+                        help="Restore churn_train_v1.parquet from the most recent backup")
     args = parser.parse_args()
-    simulate_new_data(args.rows)
+
+    if args.restore_latest:
+        restore_latest_backup()
+    else:
+        simulate_new_data(args.rows)
