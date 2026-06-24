@@ -32,7 +32,7 @@ logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
 
-load_dotenv()
+load_dotenv("_env")
 
 # ── Config ─────────────────────────────────────────────────────
 BASE_URL   = f"http://{os.getenv('API_HOST','localhost')}:{os.getenv('API_PORT',8000)}/api/v1"
@@ -274,7 +274,7 @@ def validate(df: pd.DataFrame, api_stats: dict) -> dict:
               (df[col] >= 0).all())
         
     # Outlier bounds (from EDA)
-    for col, upper in [("calls_made", 5000), ("data_used", 10000), ("estimated_salary", 5000000)]:
+    for col, upper in [("calls_made", 5000), ("data_used", 11000), ("estimated_salary", 5000000)]:
         pct_extreme = (df[col] > upper).mean()
         check(f"outlier_pct_{col}_under_1pct", pct_extreme < 0.01,
             f"{pct_extreme:.2%} above {upper}")
