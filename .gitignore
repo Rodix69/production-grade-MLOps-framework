@@ -1,2 +1,13 @@
 .env
 /telecom_churn.csv
+telecom_churn.csv
+*.csv
+data/raw/*.parquet
+data/processed/*.parquet
+data/raw/*.json
+__pycache__/
+*.pyc
+venv/
+.venv/
+.ipynb_checkpoints/
+mlruns/
