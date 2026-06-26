@@ -1,4 +1,4 @@
-.env
+_env
 /telecom_churn.csv
 telecom_churn.csv
 *.csv
