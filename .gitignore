@@ -1,3 +1,11 @@
 .env
 /telecom_churn.csv
 anaconda_projects/feature_store/data/online_store.db 
+mlartifacts/ 
+mlflow.db 
+__pycache__/ 
+*.pyc 
+.pytest_cache/ 
+phase5_automation/outputs/ 
+phase2_model/*.parquet 
+temp_repo/ 
