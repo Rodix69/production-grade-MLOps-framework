@@ -1,0 +1,1 @@
+{"detail":[{"type":"json_invalid","loc":["body",525],"msg":"JSON decode error","input":{},"ctx":{"error":"Extra data"}}]}

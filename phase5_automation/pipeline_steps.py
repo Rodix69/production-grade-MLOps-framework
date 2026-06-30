@@ -228,3 +228,6 @@ def register_model(run_id, passed, test_auc):
     )
     print(f"Model v{result.version} registered and promoted to Production")
     print(f"Test AUC: {test_auc:.4f}")
+
+    print(f"DEBUG register_model returning version: {result.version}")
+    return str(result.version)

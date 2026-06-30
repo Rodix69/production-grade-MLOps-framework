@@ -1,0 +1,14 @@
+artifact_uri: file:C:/Users/a/Desktop/intership/MLOPS/notebooks/mlruns/721566068175977313/de05d21e112a45ec8ee9d6ed95668e2f/artifacts
+end_time: 1779701961207
+entry_point_name: ''
+experiment_id: '721566068175977313'
+lifecycle_stage: active
+run_id: de05d21e112a45ec8ee9d6ed95668e2f
+run_name: logreg_production_model
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1779701942876
+status: 3
+tags: []
+user_id: a

@@ -1,0 +1,14 @@
+artifact_uri: file:C:/Users/a/Desktop/intership/MLOPS/notebooks/mlruns/721566068175977313/28cfbe7ac69342e8a32aa190165b7d33/artifacts
+end_time: 1779695880179
+entry_point_name: ''
+experiment_id: '721566068175977313'
+lifecycle_stage: active
+run_id: 28cfbe7ac69342e8a32aa190165b7d33
+run_name: xgb_v2_tuned
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1779695869008
+status: 3
+tags: []
+user_id: a

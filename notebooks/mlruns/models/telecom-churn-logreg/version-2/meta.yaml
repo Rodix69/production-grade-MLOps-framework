@@ -1,0 +1,16 @@
+creation_timestamp: 1779701961119
+current_stage: None
+deployment_job_state: null
+description: null
+last_updated_timestamp: 1779701961119
+model_id: m-88c07fe0383c4665b8d9bb155301f959
+name: telecom-churn-logreg
+run_id: de05d21e112a45ec8ee9d6ed95668e2f
+run_link: null
+source: models:/m-88c07fe0383c4665b8d9bb155301f959
+status: READY
+status_message: null
+storage_location: file:C:/Users/a/Desktop/intership/MLOPS/notebooks/mlruns/721566068175977313/models/m-88c07fe0383c4665b8d9bb155301f959/artifacts
+user_id: null
+version: 2
+workspace: default

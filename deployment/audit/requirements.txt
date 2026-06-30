@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+mlflow
+scikit-learn
+pandas
+prometheus-client
+psutil

@@ -1,0 +1,10 @@
+artifact_location: file:C:/Users/a/Desktop/intership/MLOPS/notebooks/mlruns/721566068175977313/models/m-433119506eea4adcbf665b9b5a54072c/artifacts
+creation_timestamp: 1779695911865
+experiment_id: '721566068175977313'
+last_updated_timestamp: 1779695915527
+model_id: m-433119506eea4adcbf665b9b5a54072c
+model_type: null
+name: model
+source_run_id: f4fa9e1c563343d6909128792d32425a
+status: 2
+status_message: null

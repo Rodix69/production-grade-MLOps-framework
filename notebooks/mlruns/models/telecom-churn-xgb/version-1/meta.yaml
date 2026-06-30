@@ -1,0 +1,16 @@
+creation_timestamp: 1779695879924
+current_stage: Staging
+deployment_job_state: null
+description: null
+last_updated_timestamp: 1779695880270
+model_id: m-15e70ad297dd497880b62b3d68c4ee7e
+name: telecom-churn-xgb
+run_id: 28cfbe7ac69342e8a32aa190165b7d33
+run_link: null
+source: models:/m-15e70ad297dd497880b62b3d68c4ee7e
+status: READY
+status_message: null
+storage_location: file:C:/Users/a/Desktop/intership/MLOPS/notebooks/mlruns/721566068175977313/models/m-15e70ad297dd497880b62b3d68c4ee7e/artifacts
+user_id: null
+version: 1
+workspace: default

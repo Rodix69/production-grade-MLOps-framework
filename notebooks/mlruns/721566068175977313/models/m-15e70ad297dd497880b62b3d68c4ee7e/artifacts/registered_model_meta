@@ -1,0 +1,2 @@
+model_name: telecom-churn-xgb
+model_version: '1'
