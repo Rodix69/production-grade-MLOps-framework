@@ -1,0 +1,2 @@
+timestamp,drift_share,drifted_cols,total_cols,alert,report_path
+2026-05-26T12:24:20.977087,0,0,4,False,monitoring/reports/drift_report_20260526_122419.html

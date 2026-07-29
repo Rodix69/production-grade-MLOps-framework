@@ -1,3 +1,6 @@
+.env
+/telecom_churn.csv
+anaconda_projects/
 mlruns/ 
 __pycache__/ 
 *.parquet 
