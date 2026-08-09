@@ -1,3 +1,8 @@
+.env
+/telecom_churn.csv
+anaconda_projects/feature_store/data/online_store.db 
+feature_store/data/registry.db 
+feature_store/data/*.db 
 mlruns/ 
 __pycache__/ 
 *.parquet 
